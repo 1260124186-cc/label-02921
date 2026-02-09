@@ -2,13 +2,15 @@
 
 基于 PyTorch CNN 的手写数字识别系统，使用 MNIST 数据集训练，提供 Web 画板交互界面。
 
-## 快速启动
+## How to Run
 
 ```bash
 docker-compose up --build -d
 ```
 
 启动后访问: http://localhost:8081
+
+> 注：首次构建镜像时会自动下载 MNIST 数据集并训练模型（约 2-3 分钟），训练完成后模型会打包进镜像，后续启动无需重复训练。
 
 ## Services
 
