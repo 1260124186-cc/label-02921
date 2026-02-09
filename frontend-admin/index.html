@@ -409,13 +409,23 @@
                     body: JSON.stringify({ image: imageData })
                 });
 
+                if (!response.ok) {
+                    let errorMsg = '识别失败';
+                    try {
+                        const errorData = await response.json();
+                        errorMsg = errorData.detail || errorMsg;
+                    } catch {}
+                    resultDiv.innerHTML = `<span class="result-placeholder">${errorMsg}</span>`;
+                    return;
+                }
+
                 const data = await response.json();
                 resultDiv.innerHTML = `
                     <div class="result-digit">${data.digit}</div>
                     <div class="result-confidence">置信度: ${data.confidence}%</div>
                 `;
             } catch (error) {
-                resultDiv.innerHTML = '<span class="result-placeholder">识别失败，请重试</span>';
+                resultDiv.innerHTML = '<span class="result-placeholder">网络错误，请重试</span>';
                 console.error(error);
             }
         }
