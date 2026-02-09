@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>手写数字识别</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary-color: #2563eb;
+            --primary-light: #3b82f6;
+            --primary-hover: #1d4ed8;
+            --text-primary: #1f2937;
+            --text-secondary: #4b5563;
+            --text-muted: #9ca3af;
+            --bg-page: #e5e7eb;
+            --bg-card: #ffffff;
+            --success-color: #059669;
+            --success-light: #d1fae5;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
+            --shadow-lg: 0 12px 40px rgba(0,0,0,0.15);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(180deg, #dbeafe 0%, #e5e7eb 100%);
+            min-height: 100vh;
+            color: var(--text-primary);
+            line-height: 1.5;
+        }
+
+        /* Header 区域 */
+        .header {
+            background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+            padding: 20px 24px;
+            box-shadow: 0 4px 20px rgba(30, 64, 175, 0.3);
+        }
+        .header-content {
+            max-width: 600px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        .header-icon {
+            font-size: 32px;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+        }
+        .header-title {
+            font-size: 22px;
+            font-weight: 600;
+            color: #ffffff;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+
+        /* Main 区域 */
+        .main {
+            padding: 40px 24px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            background: var(--bg-card);
+            border-radius: 16px;
+            box-shadow: var(--shadow-lg);
+            max-width: 480px;
+            width: 100%;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.8);
+        }
+
+        /* 说明区域 */
+        .intro-section {
+            padding: 20px 24px;
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+            border-bottom: 1px solid #bfdbfe;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .intro-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+            flex-shrink: 0;
+        }
+        .intro-text {
+            color: var(--text-secondary);
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        /* 画布区域 */
+        .canvas-section {
+            padding: 28px 24px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+        }
+        .canvas-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-bottom: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 500;
+        }
+        .canvas-wrapper {
+            padding: 12px;
+            background: #f1f5f9;
+            border-radius: 12px;
+            box-shadow: inset 0 2px 6px rgba(0,0,0,0.06);
+        }
+        canvas {
+            display: block;
+            border: 2px solid #cbd5e1;
+            border-radius: 8px;
+            cursor: crosshair;
+            touch-action: none;
+            background: #fff;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        canvas:hover {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        /* 按钮区域 */
+        .buttons-section {
+            padding: 20px 24px 28px;
+            display: flex;
+            gap: 14px;
+            justify-content: center;
+            background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+            border-top: 1px solid #e2e8f0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        button {
+            padding: 14px 32px;
+            font-size: 15px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 600;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
+        }
+        .btn-primary:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+        }
+        .btn-secondary {
+            background: #ffffff;
+            color: var(--text-secondary);
+            border: 2px solid #e2e8f0;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+        }
+        .btn-secondary:hover {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+            color: var(--text-primary);
+        }
+
+        /* 结果区域 */
+        .result-section {
+            padding: 24px;
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            border-top: 1px solid #bbf7d0;
+        }
+        .result-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .result-icon {
+            width: 24px;
+            height: 24px;
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+        .result-label {
+            color: #166534;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+        .result-content {
+            height: 100px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255,255,255,0.7);
+            border-radius: 12px;
+            border: 1px solid #bbf7d0;
+        }
+        .result-placeholder {
+            color: #6b7280;
+            font-size: 14px;
+        }
+        .result-digit {
+            font-size: 56px;
+            font-weight: 700;
+            color: var(--primary-color);
+            line-height: 1;
+            text-shadow: 0 2px 4px rgba(37, 99, 235, 0.15);
+        }
+        .result-confidence {
+            color: var(--success-color);
+            font-size: 16px;
+            margin-top: 8px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .result-confidence::before {
+            content: "✓";
+            font-size: 12px;
+        }
+        .loading {
+            color: var(--text-secondary);
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .loading::before {
+            content: "";
+            width: 16px;
+            height: 16px;
+            border: 2px solid #e5e7eb;
+            border-top-color: var(--primary-color);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Footer 区域 */
+        .footer {
+            padding: 18px 24px;
+            text-align: center;
+            background: #f8fafc;
+            border-top: 1px solid #e2e8f0;
+        }
+        .footer-text {
+            color: var(--text-muted);
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        .footer-badge {
+            background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <span class="header-icon">🔢</span>
+            <h1 class="header-title">手写数字识别</h1>
+        </div>
+    </header>
+
+    <main class="main">
+        <div class="container">
+            <div class="intro-section">
+                <div class="intro-icon">💡</div>
+                <p class="intro-text">在下方画板上绘制数字 0-9，点击「识别」按钮获取结果</p>
+            </div>
+
+            <div class="canvas-section">
+                <span class="canvas-label">绘制区域</span>
+                <div class="canvas-wrapper">
+                    <canvas id="canvas" width="280" height="280"></canvas>
+                </div>
+            </div>
+
+            <div class="buttons-section">
+                <button class="btn-primary" onclick="predict()">识别</button>
+                <button class="btn-secondary" onclick="clearCanvas()">清除</button>
+            </div>
+
+            <div class="result-section">
+                <div class="result-header">
+                    <div class="result-icon">📊</div>
+                    <div class="result-label">识别结果</div>
+                </div>
+                <div class="result-content" id="result">
+                    <span class="result-placeholder">请绘制数字后点击识别</span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-text">
+            <span class="footer-badge">CNN</span>
+            基于深度学习模型
+        </div>
+    </footer>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let isDrawing = false;
+
+        function initCanvas() {
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = '#1f2937';
+            ctx.lineWidth = 14;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+        }
+        initCanvas();
+
+        function getPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.clientX ?? e.touches[0].clientX;
+            const clientY = e.clientY ?? e.touches[0].clientY;
+            return {
+                x: clientX - rect.left,
+                y: clientY - rect.top
+            };
+        }
+
+        canvas.addEventListener('mousedown', (e) => {
+            isDrawing = true;
+            ctx.beginPath();
+            const pos = getPos(e);
+            ctx.moveTo(pos.x, pos.y);
+        });
+        canvas.addEventListener('mousemove', (e) => {
+            if (!isDrawing) return;
+            const pos = getPos(e);
+            ctx.lineTo(pos.x, pos.y);
+            ctx.stroke();
+        });
+        canvas.addEventListener('mouseup', () => isDrawing = false);
+        canvas.addEventListener('mouseout', () => isDrawing = false);
+
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            isDrawing = true;
+            ctx.beginPath();
+            const pos = getPos(e);
+            ctx.moveTo(pos.x, pos.y);
+        });
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            if (!isDrawing) return;
+            const pos = getPos(e);
+            ctx.lineTo(pos.x, pos.y);
+            ctx.stroke();
+        });
+        canvas.addEventListener('touchend', () => isDrawing = false);
+
+        function clearCanvas() {
+            initCanvas();
+            document.getElementById('result').innerHTML =
+                '<span class="result-placeholder">请绘制数字后点击识别</span>';
+        }
+
+        async function predict() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<span class="loading">识别中...</span>';
+
+            const imageData = canvas.toDataURL('image/png');
+
+            try {
+                const response = await fetch('/api/predict/base64', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image: imageData })
+                });
+
+                const data = await response.json();
+                resultDiv.innerHTML = `
+                    <div class="result-digit">${data.digit}</div>
+                    <div class="result-confidence">置信度: ${data.confidence}%</div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = '<span class="result-placeholder">识别失败，请重试</span>';
+                console.error(error);
+            }
+        }
+    </script>
+</body>
+</html>
