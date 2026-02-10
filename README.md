@@ -4,6 +4,8 @@
 
 ## How to Run
 
+### 方式一：Docker 运行（推荐）
+
 ```bash
 docker-compose up --build -d
 ```
@@ -11,6 +13,28 @@ docker-compose up --build -d
 启动后访问: http://localhost:8081
 
 > 注：首次构建镜像时会自动下载 MNIST 数据集并训练模型（约 2-3 分钟），训练完成后模型会打包进镜像，后续启动无需重复训练。
+
+### 方式二：本地直接运行
+
+**1. 启动后端**
+
+```bash
+cd backend
+pip install -r requirements.txt
+python train.py          # 首次运行需要训练模型
+python -m uvicorn app:app --host 0.0.0.0 --port 8000
+```
+
+**2. 启动前端**
+
+```bash
+cd frontend-admin
+python -m http.server 8081
+```
+
+访问: http://localhost:8081
+
+> 注：本地运行前端时，需要修改 `index.html` 中的 API 地址，将 `/api/predict/base64` 改为 `http://localhost:8000/api/predict/base64`（因为没有 Nginx 反向代理）。
 
 ## Services
 
