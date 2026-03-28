@@ -4,6 +4,7 @@
 """
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 import torch
 from torchvision import transforms
 from PIL import Image
@@ -19,6 +20,11 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="手写体识别 API")
+
+# Pydantic 模型
+class ImageRequest(BaseModel):
+    image: str
+    dataset_type: str = 'emnist_balanced'
 
 app.add_middleware(
     CORSMiddleware,
@@ -79,7 +85,7 @@ async def startup():
     load_all_models()
 
 
-@app.get("/health")
+@app.get("/api/health")
 async def health():
     return {
         "status": "ok",
@@ -88,7 +94,7 @@ async def health():
     }
 
 
-@app.post("/predict")
+@app.post("/api/predict")
 async def predict(file: UploadFile = File(...), dataset_type: str = 'emnist_balanced'):
     """上传图片进行预测"""
     model = get_model(dataset_type)
@@ -122,13 +128,13 @@ async def predict(file: UploadFile = File(...), dataset_type: str = 'emnist_bala
     }
 
 
-@app.post("/predict/base64")
-async def predict_base64(data: dict):
+@app.post("/api/predict/base64")
+async def predict_base64(request: ImageRequest):
     """Base64 图片预测"""
-    dataset_type = data.get("dataset_type", "emnist_balanced")
+    dataset_type = request.dataset_type
     model = get_model(dataset_type)
 
-    image_data = data.get("image", "")
+    image_data = request.image
     if not image_data:
         raise HTTPException(status_code=400, detail="缺少图像数据")
 
