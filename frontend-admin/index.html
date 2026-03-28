@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>手写数字识别</title>
+    <title>手写体识别</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -70,6 +70,47 @@
             width: 100%;
             overflow: hidden;
             border: 1px solid rgba(255,255,255,0.8);
+        }
+
+        /* 识别类型选择区域 */
+        .mode-section {
+            padding: 16px 24px;
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .mode-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 500;
+            margin-bottom: 10px;
+        }
+        .mode-selector {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .mode-btn {
+            padding: 8px 16px;
+            font-size: 13px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            background: white;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 500;
+        }
+        .mode-btn:hover {
+            border-color: var(--primary-light);
+            color: var(--primary-color);
+        }
+        .mode-btn.active {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+            border-color: transparent;
+            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
         }
 
         /* 说明区域 */
@@ -223,7 +264,7 @@
             color: #6b7280;
             font-size: 14px;
         }
-        .result-digit {
+        .result-character {
             font-size: 56px;
             font-weight: 700;
             color: var(--primary-color);
@@ -242,6 +283,11 @@
         .result-confidence::before {
             content: "✓";
             font-size: 12px;
+        }
+        .result-mode {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 4px;
         }
         .loading {
             color: var(--text-secondary);
@@ -291,16 +337,25 @@
 <body>
     <header class="header">
         <div class="header-content">
-            <span class="header-icon">🔢</span>
-            <h1 class="header-title">手写数字识别</h1>
+            <span class="header-icon">✍️</span>
+            <h1 class="header-title">手写体识别</h1>
         </div>
     </header>
 
     <main class="main">
         <div class="container">
+            <div class="mode-section">
+                <div class="mode-label">识别类型</div>
+                <div class="mode-selector">
+                    <button class="mode-btn active" data-mode="emnist_balanced" onclick="setMode('emnist_balanced')">数字+字母</button>
+                    <button class="mode-btn" data-mode="digits" onclick="setMode('digits')">仅数字</button>
+                    <button class="mode-btn" data-mode="chinese" onclick="setMode('chinese')">中文数字</button>
+                </div>
+            </div>
+
             <div class="intro-section">
                 <div class="intro-icon">💡</div>
-                <p class="intro-text">在下方画板上绘制数字 0-9，点击「识别」按钮获取结果</p>
+                <p class="intro-text" id="intro-text">在下方画板上绘制数字或字母，点击「识别」按钮获取结果</p>
             </div>
 
             <div class="canvas-section">
@@ -321,7 +376,7 @@
                     <div class="result-label">识别结果</div>
                 </div>
                 <div class="result-content" id="result">
-                    <span class="result-placeholder">请绘制数字后点击识别</span>
+                    <span class="result-placeholder">请绘制后点击识别</span>
                 </div>
             </div>
         </div>
@@ -338,6 +393,7 @@
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
         let isDrawing = false;
+        let currentMode = 'emnist_balanced';
 
         function initCanvas() {
             ctx.fillStyle = 'white';
@@ -348,6 +404,27 @@
             ctx.lineJoin = 'round';
         }
         initCanvas();
+
+        function setMode(mode) {
+            currentMode = mode;
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.mode === mode) {
+                    btn.classList.add('active');
+                }
+            });
+            
+            const introText = document.getElementById('intro-text');
+            if (mode === 'digits') {
+                introText.textContent = '在下方画板上绘制数字 0-9，点击「识别」按钮获取结果';
+            } else if (mode === 'chinese') {
+                introText.textContent = '在下方画板上绘制中文数字（一到十），点击「识别」按钮获取结果';
+            } else {
+                introText.textContent = '在下方画板上绘制数字或字母，点击「识别」按钮获取结果';
+            }
+            
+            clearCanvas();
+        }
 
         function getPos(e) {
             const rect = canvas.getBoundingClientRect();
@@ -393,7 +470,7 @@
         function clearCanvas() {
             initCanvas();
             document.getElementById('result').innerHTML =
-                '<span class="result-placeholder">请绘制数字后点击识别</span>';
+                '<span class="result-placeholder">请绘制后点击识别</span>';
         }
 
         async function predict() {
@@ -406,7 +483,10 @@
                 const response = await fetch('/api/predict/base64', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ image: imageData })
+                    body: JSON.stringify({ 
+                        image: imageData,
+                        dataset_type: currentMode
+                    })
                 });
 
                 if (!response.ok) {
@@ -420,9 +500,15 @@
                 }
 
                 const data = await response.json();
+                const modeText = {
+                    'digits': '数字模式',
+                    'emnist_balanced': '数字+字母模式',
+                    'chinese': '中文数字模式'
+                };
                 resultDiv.innerHTML = `
-                    <div class="result-digit">${data.digit}</div>
+                    <div class="result-character">${data.character}</div>
                     <div class="result-confidence">置信度: ${data.confidence}%</div>
+                    <div class="result-mode">${modeText[data.dataset_type]}</div>
                 `;
             } catch (error) {
                 resultDiv.innerHTML = '<span class="result-placeholder">网络错误，请重试</span>';
